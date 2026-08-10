@@ -1,0 +1,56 @@
+:root {
+  --color-teal: #007a6e;
+  --color-amarillo: #f5a800;
+  --color-gris-oscuro: #3a3a3a;
+  --color-blanco: #ffffff;
+
+  --color-verde: #2e7d32;
+  --color-verde-fondo: #e6f4ea;
+  --color-ambar: #b26a00;
+  --color-ambar-fondo: #fff4e0;
+  --color-rojo: #c0392b;
+  --color-rojo-fondo: #fce8e6;
+  --color-gris: #757575;
+  --color-gris-fondo: #f1f1f1;
+
+  /* Tipografía definitiva (Barlow / Barlow Condensed) pendiente de montar en el paso
+     de identidad visual; de momento, sans-serif del sistema para no depender de red. */
+  --fuente-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--fuente-base);
+  color: var(--color-gris-oscuro);
+  background: var(--color-blanco);
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.cargando,
+.mensaje {
+  margin: auto;
+  padding: 24px;
+  text-align: center;
+  font-size: 1.1rem;
+  color: var(--color-gris-oscuro);
+}
+
+button {
+  font-family: inherit;
+}
