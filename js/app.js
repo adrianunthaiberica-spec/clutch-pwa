@@ -2,13 +2,14 @@
 
 // UNTHA CLUTCH — punto de entrada de la PWA: registra el service worker, monta la
 // cabecera (logo + selector de idioma) y decide qué pintar en #contenido según el
-// token de la URL y la pantalla activa. La Pantalla 3 (Medición) y la 4 (Resultado)
-// se conectan en los próximos pasos; de momento el aviso de seguridad confirmado lleva
-// a un marcador de posición.
+// token de la URL y la pantalla activa. La Pantalla 4 (Resultado) se conecta en el
+// próximo paso; de momento, tras guardar, se vuelve a la Pantalla 1 con los datos
+// recién actualizados y un aviso de que se ha guardado.
 
 let tokenActual = null;
 let ultimoEstadoMaquina = null; // cache: cambiar de idioma no debe disparar un nuevo GET
-let pantallaActual = 'maquina'; // 'maquina' | 'aviso-seguridad' | 'medicion-pendiente'
+let pantallaActual = 'maquina'; // 'maquina' | 'aviso-seguridad' | 'medicion'
+let mensajeGuardadoPendiente_ = false; // se muestra una vez, la próxima vez que se pinte la Pantalla 1
 
 function registrarServiceWorker() {
   if ('serviceWorker' in navigator) {
@@ -56,9 +57,19 @@ function irAPantallaAvisoSeguridad_() {
 }
 
 function alConfirmarAvisoSeguridad_() {
-  // TODO: ir a la Pantalla 3 (Medición) cuando exista.
-  pantallaActual = 'medicion-pendiente';
+  pantallaActual = 'medicion';
   pintarPantalla();
+}
+
+/**
+ * Se llama cuando la Pantalla 3 ha guardado con éxito TODAS las posiciones enviadas.
+ * Se vuelve a la Pantalla 1 pero forzando un GET nuevo (no se reutiliza la caché en
+ * memoria): el semáforo y la última medición ya han cambiado en el servidor.
+ */
+function alGuardadoCompleto_() {
+  pantallaActual = 'maquina';
+  mensajeGuardadoPendiente_ = true;
+  cargarMaquina();
 }
 
 async function cargarMaquina() {
@@ -77,6 +88,17 @@ async function cargarMaquina() {
 
   ultimoEstadoMaquina = resultado.datos;
   renderPantallaMaquina(contenido, ultimoEstadoMaquina, irAPantallaAvisoSeguridad_);
+  mostrarAvisoGuardadoSiPendiente_(contenido);
+}
+
+function mostrarAvisoGuardadoSiPendiente_(contenido) {
+  if (!mensajeGuardadoPendiente_) return;
+  mensajeGuardadoPendiente_ = false;
+
+  const aviso = document.createElement('p');
+  aviso.className = 'aviso-guardado';
+  aviso.textContent = t('maquina.guardadoOk');
+  contenido.insertBefore(aviso, contenido.firstChild);
 }
 
 function pintarPantalla() {
@@ -93,8 +115,8 @@ function pintarPantalla() {
     return;
   }
 
-  if (pantallaActual === 'medicion-pendiente') {
-    contenido.innerHTML = '<p class="mensaje">' + t('comun.proximamente') + '</p>';
+  if (pantallaActual === 'medicion') {
+    renderPantallaMedicion(contenido, tokenActual, ultimoEstadoMaquina, alGuardadoCompleto_, irAPantallaMaquina_);
     return;
   }
 

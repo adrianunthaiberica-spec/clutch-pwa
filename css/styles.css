@@ -262,3 +262,118 @@ button {
   background: var(--color-teal);
   color: var(--color-blanco);
 }
+
+/* Pantalla 3 · Medición */
+
+.pantalla-medicion {
+  width: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pantalla-medicion__titulo {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.tarjeta-posicion__anterior {
+  margin: 0 0 10px 0;
+  font-size: 0.95rem;
+  color: var(--color-gris-oscuro);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo__etiqueta {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.campo__input {
+  padding: 14px;
+  font-size: 1.2rem;
+  border: 2px solid var(--color-gris);
+  border-radius: 8px;
+  background: var(--color-blanco);
+  color: var(--color-gris-oscuro);
+}
+
+.campo__input:focus {
+  border-color: var(--color-teal);
+  outline: none;
+}
+
+.campo__input:disabled {
+  background: var(--color-gris-fondo);
+  color: var(--color-gris);
+}
+
+.campo__error {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-rojo);
+}
+
+/* Misma idea que en la Pantalla 2: toda la fila es tocable, no solo la casilla. */
+.tarjeta-posicion__omitir {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tarjeta-posicion__omitir input[type='checkbox'] {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  accent-color: var(--color-teal);
+  cursor: pointer;
+}
+
+.pantalla-medicion__resumen-item {
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--color-gris-fondo);
+}
+
+.pantalla-medicion__resumen-item p {
+  margin: 4px 0;
+}
+
+.pantalla-medicion__resumen-titulo {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pantalla-medicion__resumen-nuevo {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.pantalla-medicion__error-guardado {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aviso-guardado {
+  margin: 0;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--color-verde-fondo);
+  color: var(--color-verde);
+  font-weight: 600;
+  text-align: center;
+}

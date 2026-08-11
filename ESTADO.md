@@ -2,7 +2,15 @@
 
 Documento de traspaso. Escrito para que alguien sin contexto previo pueda
 continuar el trabajo leyendo solo esto (más el código). Última actualización:
-2026-08-11, tras completar el Paso 5 (Pantalla 2 · Aviso de seguridad).
+2026-08-11, tras completar el Paso 6 (Pantalla 3 · Medición).
+
+**IMPORTANTE — pendiente de acción manual del usuario:** este paso modificó
+`apps-script/Api.gs` en **App-clutch** (añade `rango_medicion` al GET). Hay
+que recopiar `Api.gs` al editor de Apps Script y **redesplegar la Web App**
+para que el cambio esté en producción. Hasta que eso ocurra, el backend real
+sigue respondiendo sin `rango_medicion` — la PWA lo tolera (ver §4, rango de
+seguridad de reserva), pero la Pantalla 3 no podrá validar contra los límites
+reales de 00_PARAMETROS hasta el redespliegue.
 
 ## 0. Qué es esto
 
@@ -43,13 +51,22 @@ contra el backend real desde un móvil).
 - [x] **Paso 5** — Pantalla 2 · Aviso de seguridad
   (`js/pantalla-aviso-seguridad.js`): checkbox obligatorio + botón
   "Continuar" que nace deshabilitado.
-- [ ] **Paso 6** — Pantalla 3 · Medición. Ambas posiciones en una sola
-  pantalla, opción de omitir una posición, teclado numérico decimal nativo
-  (`inputmode="decimal"`), tres validaciones (un decimal, rango plausible,
-  diálogo de confirmación mostrando valor tecleado vs. anterior), horómetro
-  obligatorio, nombre de operario recordado en el dispositivo entre
-  mediciones. **Ver §5 "Gaps abiertos" — rango plausible sin fuente
-  autoritativa expuesta por la API.**
+- [x] **Paso 6** — Pantalla 3 · Medición (`js/pantalla-medicion.js`). Ambas
+  posiciones en una sola pantalla; la posición `SIN_REGISTRAR` se muestra
+  bloqueada con su explicación y nunca pide un valor; las posiciones
+  medibles se pueden medir u omitir con una casilla. Teclado
+  `inputmode="decimal"` (acepta coma o punto). Tres validaciones antes de
+  guardar: un solo decimal, rango plausible (`datosMaquina.rango_medicion`
+  del GET, con reserva amplia si no llega — ver §4), y una pantalla de
+  confirmación explícita que muestra el valor tecleado junto al anterior.
+  Horómetro y nombre de operario obligatorios; el operario se recuerda en
+  `localStorage` entre mediciones. Cada posición enviada se guarda con una
+  llamada POST independiente (una petición por posición); si alguna falla,
+  la pantalla se queda con un estado de error por posición y un botón
+  "Reintentar" que reenvía con los mismos ids (idempotente, seguro incluso
+  si alguna posición ya se había guardado). Verificado con Playwright/mock
+  local: 17 aserciones en 3 escenarios (flujo normal con edición y reintento
+  de validación, posición bloqueada, fallo parcial de una posición).
 - [ ] **Paso 7** — Pantalla 4 · Resultado. Muestra el desgaste calculado y el
   color resultante por posición, usando `medicion_inicial` y `desgaste` que ya
   devuelve el POST (ver §3). Si el resultado es rojo, mensaje de estado claro
@@ -105,12 +122,21 @@ GET {CLUTCH_API_BASE_URL}?t=<token>
           "fecha_ultima_medicion": "2026-01-15T10:30:00.000Z"
         },
         "DERECHA": { "...": "..." }
-      }
+      },
+      "rango_medicion": { "min": 1.0, "max": 6.5 }
     }
   }
   ```
   Si una posición no tiene ciclo activo: `estado_semaforo:'SIN_REGISTRAR'`,
   `ultima_medicion:''`, `fecha_ultima_medicion:''`.
+
+  `rango_medicion` (añadido en el Paso 6, `construirEstadoMaquina_` en
+  Api.gs): `{ min, max }` leídos de `MIN_MEDICION`/`MAX_MEDICION` en
+  00_PARAMETROS vía `leerParametros()` (Parametros.gs) — el mismo mecanismo
+  que ya usaba `validarCuerpoMedicion_` en el servidor. Existe para que la
+  Pantalla 3 valide el rango plausible sin duplicar esos umbrales a mano en
+  el cliente. **Requiere redesplegar la Web App** (ver aviso al principio de
+  este documento) — hasta entonces el backend real no lo devuelve todavía.
 
 ### POST — registrar medición
 
@@ -250,28 +276,66 @@ correctamente desde ahora para no tener que tocarlo entonces.
 - **Tipografía Barlow diferida al Paso 8**: de momento sans-serif del
   sistema, para no depender de red (Google Fonts u otro CDN) hasta que se
   aborde la identidad visual definitiva de forma explícita.
+- **`rango_medicion` viene del servidor, nunca hardcodeado en el cliente**
+  (decisión explícita del usuario para el Paso 6): MIN_MEDICION/MAX_MEDICION
+  viven en 00_PARAMETROS precisamente para poder ajustarse sin tocar código;
+  duplicarlos en la PWA habría creado el riesgo de que Sheet y app dijeran
+  cosas distintas. Si el campo no llega (p. ej. backend todavía no
+  redesplegado), la Pantalla 3 usa `RANGO_MEDICION_SEGURIDAD_` (0–50 mm) en
+  `js/pantalla-medicion.js` y sigue funcionando sin bloquear: es un rango de
+  reserva amplio, no una validación estricta — el servidor vuelve a validar
+  el rango real de todos modos en `validarCuerpoMedicion_`.
+- **Pantalla 3 llama a la API directamente** (a diferencia de Pantalla 1/2,
+  que solo reciben datos ya cargados por `app.js`): mantener todo el flujo de
+  validar → confirmar → guardar → reintentar autocontenido en un único
+  fichero es más simple que repartirlo entre la pantalla y `app.js`. Recibe
+  el `token` como parámetro para eso.
+- **Una llamada POST por posición, no un endpoint de "guardar ambas"**: el
+  contrato de Api.gs ya es por posición (§3), así que Pantalla 3 llama a
+  `registrarMedicion` una vez por cada posición medida, secuencialmente.
+  Los ids de medición se generan una vez al entrar en la pantalla de
+  confirmación y se mantienen estables durante los reintentos (mismo
+  "intento de medición"); si el operario vuelve a "editar", eso cuenta como
+  un intento nuevo y se regeneran. Si guardar falla para alguna posición,
+  reintentar reenvía TODAS las posiciones de ese intento con los mismos
+  ids — las que ya se habían guardado vuelven con `motivo:'YA_SINCRONIZADA'`
+  (idempotente, sin duplicar), así que no hace falta rastrear cuáles ya se
+  guardaron.
+- **Nombre de operario en `localStorage`** (`untha-clutch-operario`,
+  gestionado directamente por `js/pantalla-medicion.js`, mismo patrón que
+  `js/i18n.js` con el idioma): se recuerda entre mediciones en el mismo
+  dispositivo para no reescribirlo cada vez, pero es solo una comodidad de
+  UI — no se usa como identidad ni afecta a ninguna validación.
+- **Tras guardar con éxito, vuelve a la Pantalla 1 con un aviso, no a una
+  Pantalla de Resultado**: la Pantalla 4 (Resultado, con colores y desgaste
+  calculado) es el Paso 7, todavía no construida. De momento, `app.js`
+  fuerza un GET nuevo (no reutiliza la caché en memoria, que ya está
+  desactualizada) y muestra un aviso de "Medición guardada correctamente."
+  una sola vez sobre la Pantalla 1 ya actualizada. Es un cierre de bucle
+  mínimo y honesto (no inventa una pantalla de resultado a medias) que
+  Paso 7 sustituirá.
 
-## 5. Gaps abiertos (a resolver antes o durante el Paso 6)
+## 5. Gaps abiertos
 
-- **`MIN_MEDICION`/`MAX_MEDICION` (1.0–6.5 mm) y
-  `MIN_INICIAL_NUEVO`/`MAX_INICIAL_NUEVO` (5.5–6.2 mm) viven en
-  `00_PARAMETROS` (backend, `apps-script/Setup.gs`) pero NO están expuestos
-  por ningún endpoint de la API.** La Pantalla 3 necesita algún rango
-  plausible para su validación "rango plausible" (una de las tres
-  validaciones del paso), y ahora mismo no hay forma de obtenerlo
-  dinámicamente del backend. Opciones a decidir con el usuario: (a)
-  hardcodear los valores en el cliente (riesgo: desincronización si cambian
-  en Sheets sin tocar la PWA), o (b) añadir estos parámetros a la respuesta
-  del GET en Api.gs (requiere tocar App-clutch y redesplegar). Preguntarlo
-  antes de construir la validación de rango del Paso 6.
 - **`untha-sat-pwa`**: relación con este proyecto sin aclarar (ver §1).
+- **Redespliegue pendiente de Api.gs** (ver aviso al principio del
+  documento): hasta que el usuario recopie `Api.gs` en el editor de Apps
+  Script y redespliegue la Web App, el backend real no devuelve
+  `rango_medicion`. La PWA ya tolera su ausencia (rango de reserva, §4), así
+  que no bloquea el uso — pero la validación de rango en producción seguirá
+  siendo la de reserva (0–50 mm) hasta entonces, no la real (1.0–6.5 mm).
+- Resuelto en el Paso 6 (ya no es un gap): `MIN_MEDICION`/`MAX_MEDICION`
+  ahora viajan en el GET como `rango_medicion` — ver §3 y §4.
+  `MIN_INICIAL_NUEVO`/`MAX_INICIAL_NUEVO` (5.5–6.2 mm) siguen sin exponerse,
+  pero esos solo se usan al dar de alta un ciclo nuevo (panel de UNTHA), no
+  en la PWA de campo — no hace falta exponerlos aquí.
 
 ## 6. Ficheros que componen la PWA (clutch-pwa, íntegro)
 
 ```
 .nojekyll                          — necesario para que GitHub Pages sirva ficheros/carpetas con "_" sin tratarlos como Jekyll
 config.js                          — CLUTCH_API_BASE_URL (única fuente de verdad de la URL del backend desplegado)
-css/styles.css                     — estilos, variables de color (marca + semáforo), componentes de las pantallas 1 y 2
+css/styles.css                     — estilos, variables de color (marca + semáforo), componentes de las pantallas 1-3
 icons/apple-touch-icon.png
 icons/icon-192.png
 icons/icon-512.png
@@ -282,33 +346,47 @@ js/app.js                          — orquestación: registra el SW, monta cabe
 js/i18n.js                         — diccionario es/pt, t(ruta), selector de idioma, override en localStorage
 js/pantalla-aviso-seguridad.js     — Pantalla 2
 js/pantalla-maquina.js             — Pantalla 1
+js/pantalla-medicion.js            — Pantalla 3: formulario + validación + confirmación + guardado + reintento
 manifest.json                      — Web App Manifest (nombre, iconos, colores, standalone)
 scripts/generar_iconos.py          — script Pillow (uso puntual, no se ejecuta en producción) para regenerar los iconos desde el logo
-sw.js                              — service worker: cachea shell estático (untha-clutch-shell-v5), deja pasar llamadas cross-origin (API) sin interceptar
+sw.js                              — service worker: cachea shell estático (untha-clutch-shell-v6), deja pasar llamadas cross-origin (API) sin interceptar
 ```
 
 `index.html` carga los scripts en este orden estricto (cada uno depende de
 los anteriores en tiempo de carga, no hay bundler):
 `config.js` → `js/i18n.js` → `js/api.js` → `js/pantalla-maquina.js` →
-`js/pantalla-aviso-seguridad.js` → `js/app.js`. Al añadir
-`js/pantalla-medicion.js` (Paso 6) y `js/pantalla-resultado.js` (Paso 7),
-insertarlos en `index.html` antes de `js/app.js` y añadirlos también a
-`ARCHIVOS_APP_SHELL` en `sw.js` (si no, quedan sin cachear para el modo
-instalado).
+`js/pantalla-aviso-seguridad.js` → `js/pantalla-medicion.js` → `js/app.js`.
+`js/pantalla-medicion.js` reutiliza funciones globales de
+`js/pantalla-maquina.js` (`claveTituloPosicion_`, `formatearValorMedicion_`,
+`formatearFecha_`), por eso va después de ese fichero. Al añadir
+`js/pantalla-resultado.js` (Paso 7), insertarlo en `index.html` antes de
+`js/app.js` y añadirlo también a `ARCHIVOS_APP_SHELL` en `sw.js` (si no,
+queda sin cachear para el modo instalado; recuerda subir el número de
+`CACHE_NAME` cuando cambie la lista, igual que se hizo v5→v6 en este paso).
 
 ## 7. Cómo probar sin tocar producción
 
-Servidor mock local en Python/Node que responda `GET ?t=...` y
-`POST` imitando el contrato de §3, servido en un puerto local; Playwright
-(Chromium) navegando contra `http://localhost:<puerto>/index.html` con
-`config.js` apuntando al mock en vez de a `CLUTCH_API_BASE_URL` real durante
-la prueba (revertir antes de commitear). Notas del entorno de pruebas de esta
-sesión: usar `waitUntil: 'domcontentloaded'` o `'load'` en vez de
-`'networkidle'`, lanzar un `browser` nuevo por escenario en vez de reutilizar
-una página para varias navegaciones, y envolver la ejecución con `timeout`
-de shell — `networkidle` combinado con navegaciones múltiples en la misma
-página colgaba el sandbox de este entorno de forma intermitente (no es un
-bug de la aplicación).
+Servidor mock local (Python, `http.server`) que sirve los ficheros estáticos
+de `clutch-pwa` Y responde `GET/POST /exec` imitando el contrato de §3
+(incluido `rango_medicion`); Playwright (Chromium) navegando contra
+`http://127.0.0.1:<puerto>/index.html?t=...`.
+
+**Sin tocar `config.js` del repo**: en vez de editar el fichero real y
+revertirlo luego (frágil, fácil de olvidar), se intercepta la petición a
+`config.js` con `page.route('**/config.js', route => route.fulfill({...}))`
+y se le sirve un `CLUTCH_API_BASE_URL` apuntando al mock, solo dentro de esa
+`page` de Playwright. El fichero del repo nunca se toca durante la prueba —
+usado así en el Paso 6, mejor que el enfoque anterior de editar y revertir.
+
+Notas del entorno de pruebas de esta sesión (confirmadas también en el Paso
+6): usar `waitUntil: 'domcontentloaded'` o `'load'` en vez de `'networkidle'`,
+lanzar un `browser` nuevo por escenario en vez de reutilizar una página para
+varias navegaciones, y envolver la ejecución con `timeout` de shell —
+`networkidle` combinado con navegaciones múltiples en la misma página podía
+colgar el sandbox de este entorno de forma intermitente (no es un bug de la
+aplicación). Playwright está disponible como paquete global de Node
+(`NODE_PATH=/opt/node22/lib/node_modules node script.js`), no como
+dependencia del repo.
 
 Solo el usuario prueba contra el backend real desplegado (ya lo ha hecho con
-éxito desde su móvil, con la máquina SH12512).
+éxito desde su móvil, con la máquina SH12512, hasta el Paso 5).
