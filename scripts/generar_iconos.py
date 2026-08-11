@@ -3,11 +3,12 @@
 UNTHA CLUTCH — genera los iconos cuadrados de la PWA a partir del logotipo horizontal
 (img/logo-untha.png).
 
-El logo es muy apaisado y no tiene monograma cuadrado, así que el icono es: fondo teal
-solido + logo centrado ocupando ~60% del ancho del icono. Eso deja margen de sobra para
-la zona segura de la mascara adaptativa de Android (que puede recortar hasta un circulo
-del 80% del icono): con el logo tan alargado, incluso al 60% del ancho la banda
-resultante es muy fina en altura, asi que sobra margen vertical tambien.
+El logo es muy apaisado y no tiene monograma cuadrado, así que el icono es: fondo solido
+(COLOR_FONDO, ajustable abajo) + logo centrado ocupando ~60% del ancho del icono. Eso
+deja margen de sobra para la zona segura de la mascara adaptativa de Android (que puede
+recortar hasta un circulo del 80% del icono): con el logo tan alargado, incluso al 60%
+del ancho la banda resultante es muy fina en altura, asi que sobra margen vertical
+tambien.
 
 Ninguno de los tres iconos lleva canal alfa (fondo solido, y ademas iOS no respeta la
 transparencia en apple-touch-icon).
@@ -26,7 +27,7 @@ from PIL import Image
 DIR_RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOGO_ORIGEN = os.path.join(DIR_RAIZ, 'img', 'logo-untha.png')
 
-COLOR_TEAL = (0x00, 0x7A, 0x6E)
+COLOR_FONDO = (0xF2, 0xF2, 0xF2)  # gris claro #F2F2F2; antes teal #007A6E
 ANCHO_LOGO_PROPORCION = 0.60  # el logo ocupa ~60% del ancho del icono
 
 ICONOS = [
@@ -37,7 +38,7 @@ ICONOS = [
 
 
 def generar_icono(logo, tamano, ruta_salida):
-    fondo = Image.new('RGB', (tamano, tamano), COLOR_TEAL)
+    fondo = Image.new('RGB', (tamano, tamano), COLOR_FONDO)
 
     ancho_logo_destino = round(tamano * ANCHO_LOGO_PROPORCION)
     alto_logo_destino = round(ancho_logo_destino * logo.height / logo.width)
@@ -47,7 +48,7 @@ def generar_icono(logo, tamano, ruta_salida):
     y = (tamano - alto_logo_destino) // 2
 
     # Se pega usando el propio canal alfa del logo como mascara: donde el logo es
-    # transparente se ve el fondo teal. `fondo` es RGB (sin alfa) y lo sigue siendo tras
+    # transparente se ve COLOR_FONDO. `fondo` es RGB (sin alfa) y lo sigue siendo tras
     # el paste, asi que el PNG resultante no lleva canal alfa.
     fondo.paste(logo_redimensionado, (x, y), logo_redimensionado)
 
