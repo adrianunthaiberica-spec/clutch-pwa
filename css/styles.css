@@ -42,6 +42,17 @@ body {
   flex-direction: column;
 }
 
+#barra-superior {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 14px;
+}
+
+#contenido {
+  flex: 1;
+  display: flex;
+}
+
 .cargando,
 .mensaje {
   margin: auto;
@@ -53,4 +64,27 @@ body {
 
 button {
   font-family: inherit;
+}
+
+.selector-idioma {
+  display: inline-flex;
+  gap: 2px;
+  border: 1px solid var(--color-teal);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.selector-idioma__opcion {
+  border: none;
+  background: var(--color-blanco);
+  color: var(--color-teal);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.selector-idioma__opcion[aria-pressed='true'] {
+  background: var(--color-teal);
+  color: var(--color-blanco);
 }
