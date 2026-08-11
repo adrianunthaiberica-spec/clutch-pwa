@@ -21,6 +21,13 @@ const TRADUCCIONES = {
     inicio: {
       escanear: 'Escanea el código QR de la máquina para empezar.',
     },
+    maquina: {
+      numeroSerie: 'Nº de serie',
+      posicionIzquierda: 'Izquierda',
+      posicionDerecha: 'Derecha',
+      sinRegistrar: 'Embragues sin registrar — contacta con UNTHA',
+      botonNuevaMedicion: 'Nueva medición',
+    },
     // Traducciones de los codigos de error que devuelve el backend (Api.gs). El
     // servidor siempre manda su `mensaje` en castellano (no esta preparado para
     // idiomas); aqui se traducen los codigos que un operario puede llegar a ver de
@@ -46,6 +53,13 @@ const TRADUCCIONES = {
     },
     inicio: {
       escanear: 'Digitaliza o código QR da máquina para começar.',
+    },
+    maquina: {
+      numeroSerie: 'Nº de série',
+      posicionIzquierda: 'Esquerda',
+      posicionDerecha: 'Direita',
+      sinRegistrar: 'Embraiagens não registadas — contacta a UNTHA',
+      botonNuevaMedicion: 'Nova medição',
     },
     errores: {
       ACCESO_DENEGADO: 'Não foi possível aceder a esta máquina. Verifica o código QR ou contacta a UNTHA.',

@@ -44,8 +44,14 @@ body {
 
 #barra-superior {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   padding: 10px 14px;
+}
+
+.logo-cabecera {
+  height: 28px;
+  width: auto;
 }
 
 #contenido {
@@ -64,6 +70,117 @@ body {
 
 button {
   font-family: inherit;
+}
+
+/* Botón grande, pensado para tocarse con guantes: área táctil generosa, sin sutilezas. */
+.boton-grande {
+  margin-top: 8px;
+  padding: 20px;
+  min-height: 64px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-teal);
+  color: var(--color-blanco);
+  cursor: pointer;
+}
+
+.boton-grande:disabled {
+  background: var(--color-gris);
+  cursor: not-allowed;
+}
+
+/* Pantalla 1 · Máquina */
+
+.pantalla-maquina {
+  width: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pantalla-maquina__num-serie {
+  margin: 0;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.pantalla-maquina__tarjetas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tarjeta-posicion {
+  border-radius: 12px;
+  padding: 20px;
+  border-left: 8px solid var(--color-gris);
+  background: var(--color-gris-fondo);
+}
+
+.tarjeta-posicion--verde {
+  border-left-color: var(--color-verde);
+  background: var(--color-verde-fondo);
+}
+
+.tarjeta-posicion--ambar {
+  border-left-color: var(--color-ambar);
+  background: var(--color-ambar-fondo);
+}
+
+.tarjeta-posicion--rojo {
+  border-left-color: var(--color-rojo);
+  background: var(--color-rojo-fondo);
+}
+
+.tarjeta-posicion--gris {
+  border-left-color: var(--color-gris);
+  background: var(--color-gris-fondo);
+}
+
+.tarjeta-posicion__titulo {
+  margin: 0 0 8px 0;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tarjeta-posicion__valor {
+  margin: 0;
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.tarjeta-posicion__fecha {
+  margin: 4px 0 0 0;
+  font-size: 0.95rem;
+  color: var(--color-gris);
+}
+
+.tarjeta-posicion__aviso {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.pantalla-error {
+  margin: auto;
+  padding: 24px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.pantalla-error .boton-grande {
+  width: 100%;
+  max-width: 320px;
 }
 
 .selector-idioma {

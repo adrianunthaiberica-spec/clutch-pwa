@@ -1,9 +1,12 @@
 'use strict';
 
-// UNTHA CLUTCH — punto de entrada de la PWA. Por ahora solo registra el service worker,
-// monta el selector de idioma y comprueba si hay un qr_token en la URL; las pantallas
-// (Máquina, Aviso de seguridad, Medición, Resultado) y la capa de API se construyen en
-// los siguientes pasos.
+// UNTHA CLUTCH — punto de entrada de la PWA: registra el service worker, monta la
+// cabecera (logo + selector de idioma) y decide qué pintar en #contenido según haya o
+// no token en la URL. Las pantallas siguientes (Aviso de seguridad, Medición,
+// Resultado) se conectan en los próximos pasos.
+
+let tokenActual = null;
+let ultimoEstadoMaquina = null; // cache: cambiar de idioma no debe disparar un nuevo GET
 
 function registrarServiceWorker() {
   if ('serviceWorker' in navigator) {
@@ -17,29 +20,73 @@ function obtenerTokenDeUrl() {
   return new URLSearchParams(window.location.search).get('t');
 }
 
-function montarSelectorIdioma() {
-  const contenedor = document.getElementById('barra-superior');
-  if (!contenedor) return;
-  contenedor.appendChild(crearSelectorIdioma());
+function montarCabecera() {
+  const barra = document.getElementById('barra-superior');
+  if (!barra) return;
+  barra.appendChild(crearSelectorIdioma());
+}
+
+function mostrarError_(contenedor, mensaje) {
+  contenedor.innerHTML = '';
+  contenedor.className = 'pantalla-error';
+
+  const texto = document.createElement('p');
+  texto.className = 'mensaje';
+  texto.textContent = mensaje;
+  contenedor.appendChild(texto);
+
+  const boton = document.createElement('button');
+  boton.type = 'button';
+  boton.className = 'boton-grande';
+  boton.textContent = t('comun.reintentar');
+  boton.addEventListener('click', cargarMaquina);
+  contenedor.appendChild(boton);
+}
+
+function alPulsarNuevaMedicion_() {
+  // TODO: navegar a la Pantalla 2 (aviso de seguridad) cuando exista.
+}
+
+async function cargarMaquina() {
+  const contenido = document.getElementById('contenido');
+  if (!contenido || !tokenActual) return;
+
+  contenido.innerHTML = '<p class="cargando">' + t('comun.cargando') + '</p>';
+
+  const resultado = await consultarMaquina(tokenActual);
+
+  if (!resultado.ok) {
+    ultimoEstadoMaquina = null;
+    mostrarError_(contenido, resultado.mensaje);
+    return;
+  }
+
+  ultimoEstadoMaquina = resultado.datos;
+  renderPantallaMaquina(contenido, ultimoEstadoMaquina, alPulsarNuevaMedicion_);
 }
 
 function pintarPantalla() {
-  const token = obtenerTokenDeUrl();
   const contenido = document.getElementById('contenido');
   if (!contenido) return;
 
-  if (!token) {
+  if (!tokenActual) {
     contenido.innerHTML = '<p class="mensaje">' + t('inicio.escanear') + '</p>';
     return;
   }
 
-  contenido.innerHTML = '<p class="cargando">' + t('comun.cargando') + '</p>';
-  // TODO: llamar a la API (GET) y pintar la Pantalla 1 con el resultado.
+  if (ultimoEstadoMaquina) {
+    renderPantallaMaquina(contenido, ultimoEstadoMaquina, alPulsarNuevaMedicion_);
+    return;
+  }
+
+  cargarMaquina();
 }
 
 function iniciar() {
   registrarServiceWorker();
-  montarSelectorIdioma();
+  montarCabecera();
+
+  tokenActual = obtenerTokenDeUrl();
   pintarPantalla();
 
   document.addEventListener('untha-clutch:idioma-cambiado', pintarPantalla);
