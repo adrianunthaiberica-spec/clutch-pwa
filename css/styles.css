@@ -368,12 +368,15 @@ button {
   gap: 4px;
 }
 
-.aviso-guardado {
-  margin: 0;
-  padding: 14px;
-  border-radius: 10px;
-  background: var(--color-verde-fondo);
-  color: var(--color-verde);
-  font-weight: 600;
-  text-align: center;
+/* Pantalla 4 · Resultado (reutiliza .tarjeta-posicion de la Pantalla 1 para el color) */
+
+.tarjeta-posicion__perdido {
+  margin: 8px 0 0 0;
+  font-size: 1rem;
+}
+
+.tarjeta-posicion__estado {
+  margin: 8px 0 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
 }

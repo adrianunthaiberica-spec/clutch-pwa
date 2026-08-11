@@ -2,15 +2,13 @@
 
 Documento de traspaso. Escrito para que alguien sin contexto previo pueda
 continuar el trabajo leyendo solo esto (más el código). Última actualización:
-2026-08-11, tras completar el Paso 6 (Pantalla 3 · Medición).
+2026-08-11, tras completar el Paso 7 (Pantalla 4 · Resultado).
 
-**IMPORTANTE — pendiente de acción manual del usuario:** este paso modificó
-`apps-script/Api.gs` en **App-clutch** (añade `rango_medicion` al GET). Hay
-que recopiar `Api.gs` al editor de Apps Script y **redesplegar la Web App**
-para que el cambio esté en producción. Hasta que eso ocurra, el backend real
-sigue respondiendo sin `rango_medicion` — la PWA lo tolera (ver §4, rango de
-seguridad de reserva), pero la Pantalla 3 no podrá validar contra los límites
-reales de 00_PARAMETROS hasta el redespliegue.
+El redespliegue de `Api.gs` pendiente desde el Paso 6 ya se hizo: el usuario
+confirmó desde el móvil que el backend real registra mediciones, valida y
+regenera `10_ESTADO_ACTUAL` correctamente. `rango_medicion` ya llega en
+producción — no queda ninguna acción manual pendiente sobre App-clutch en
+este momento.
 
 ## 0. Qué es esto
 
@@ -67,10 +65,25 @@ contra el backend real desde un móvil).
   si alguna posición ya se había guardado). Verificado con Playwright/mock
   local: 17 aserciones en 3 escenarios (flujo normal con edición y reintento
   de validación, posición bloqueada, fallo parcial de una posición).
-- [ ] **Paso 7** — Pantalla 4 · Resultado. Muestra el desgaste calculado y el
-  color resultante por posición, usando `medicion_inicial` y `desgaste` que ya
-  devuelve el POST (ver §3). Si el resultado es rojo, mensaje de estado claro
-  pero no alarmista — "la app informa, no da órdenes" (spec).
+- [x] **Paso 7** — Pantalla 4 · Resultado (`js/pantalla-resultado.js`). Se
+  pinta justo después de guardar en la Pantalla 3: una tarjeta por cada
+  posición que se acaba de medir de verdad (nunca por las omitidas ni por
+  las bloqueadas — ahí no ha pasado nada nuevo). Cada tarjeta muestra el
+  valor guardado, "Has perdido X mm de los Y mm de vida útil." (con
+  `desgaste`/`medicion_inicial` que ya devuelve el POST) y un mensaje de
+  estado según el color. El color viene de un GET fresco que `app.js` pide
+  justo tras guardar (nunca se recalcula en el cliente, igual que en la
+  Pantalla 1); si ese GET fallara, se pinta igual con un mensaje neutro
+  ("Medición guardada.") en vez de bloquear — la medición ya está guardada
+  de todos modos. El mensaje en rojo es una constatación de estado
+  ("Estado: desgaste crítico."), sin verbos de mandato ni llamada a la
+  acción — verificado explícitamente con una aserción que comprueba que el
+  texto NO contiene "contacta/avisa/debes" ni similares: "la app informa, no
+  da órdenes ni insiste" es literal, toda comunicación proactiva es cosa de
+  UNTHA. Botón único "Continuar" que vuelve a la Pantalla 1 (ya con los
+  datos frescos en caché, sin otro GET). Sustituye el aviso-banner temporal
+  del Paso 6. Verificado con Playwright/mock local: 25 aserciones en 4
+  escenarios (los 3 del Paso 6 más uno nuevo para el caso ROJO).
 - [ ] **Paso 8** — Identidad visual definitiva: cargar Barlow / Barlow
   Condensed (ahora mismo `--fuente-base` en `css/styles.css` es sans-serif del
   sistema, placeholder deliberado para no depender de red hasta este paso).
@@ -135,8 +148,7 @@ GET {CLUTCH_API_BASE_URL}?t=<token>
   00_PARAMETROS vía `leerParametros()` (Parametros.gs) — el mismo mecanismo
   que ya usaba `validarCuerpoMedicion_` en el servidor. Existe para que la
   Pantalla 3 valide el rango plausible sin duplicar esos umbrales a mano en
-  el cliente. **Requiere redesplegar la Web App** (ver aviso al principio de
-  este documento) — hasta entonces el backend real no lo devuelve todavía.
+  el cliente. Ya está en producción (redespliegue confirmado tras el Paso 6).
 
 ### POST — registrar medición
 
@@ -192,10 +204,13 @@ Respuestas posibles:
     }
   }
   ```
-  `motivo` puede ser `'NUEVA'` u otro motivo de aceptación que devuelva
-  `registrarMedicion` en el backend (p.ej. reenvío idempotente del mismo
-  `id`). `medicion_inicial` y `desgaste` son los que la Pantalla 4 (Paso 7)
-  debe mostrar — no recalcular nada en el cliente.
+  `motivo` puede ser `'NUEVA'`, `'YA_SINCRONIZADA'` (reenvío idempotente del
+  mismo `id`, ver más abajo) u otro motivo de aceptación que devuelva
+  `registrarMedicion` en el backend. `medicion_inicial` y `desgaste` son los
+  que la Pantalla 4 (`js/pantalla-resultado.js`, Paso 7) muestra tal cual —
+  nunca se recalculan en el cliente. El color (`estado_semaforo`) para esa
+  misma pantalla NO viene de esta respuesta: sale de un GET fresco que pide
+  `app.js` justo después de guardar (ver §4).
 - Error interno inesperado (catch en `doGet`/`doPost`) → `{ ok:false, error:'ERROR_INTERNO', mensaje:'Error interno, intentalo de nuevo.' }`.
 
 ### Idempotencia por `id`
@@ -306,26 +321,42 @@ correctamente desde ahora para no tener que tocarlo entonces.
   `js/i18n.js` con el idioma): se recuerda entre mediciones en el mismo
   dispositivo para no reescribirlo cada vez, pero es solo una comodidad de
   UI — no se usa como identidad ni afecta a ninguna validación.
-- **Tras guardar con éxito, vuelve a la Pantalla 1 con un aviso, no a una
-  Pantalla de Resultado**: la Pantalla 4 (Resultado, con colores y desgaste
-  calculado) es el Paso 7, todavía no construida. De momento, `app.js`
-  fuerza un GET nuevo (no reutiliza la caché en memoria, que ya está
-  desactualizada) y muestra un aviso de "Medición guardada correctamente."
-  una sola vez sobre la Pantalla 1 ya actualizada. Es un cierre de bucle
-  mínimo y honesto (no inventa una pantalla de resultado a medias) que
-  Paso 7 sustituirá.
+- **Tras guardar con éxito, la Pantalla 4 pide un GET fresco antes de
+  pintarse** (`alGuardadoCompleto_` en `js/app.js`): el color mostrado tiene
+  que ser el real de `10_ESTADO_ACTUAL`, no uno inferido en el cliente, así
+  que hace falta un GET nuevo después del POST (la caché en memoria quedó
+  desactualizada con el guardado). Ese mismo GET fresco se guarda como
+  `ultimoEstadoMaquina`, así que al pulsar "Continuar" la Pantalla 1 no
+  necesita pedir los datos otra vez. Si ese GET de refresco fallara, no se
+  bloquea ni se reintenta ahí — la medición ya está guardada de verdad
+  (confirmado por el POST); simplemente se pinta la Pantalla 4 sin el color
+  exacto (mensaje neutro "Medición guardada.").
+- **Pantalla 4 solo muestra las posiciones medidas en ESE registro**, nunca
+  las que se omitieron o estaban bloqueadas: es el resultado de lo que
+  acaba de pasar, no un resumen del estado completo de la máquina (eso ya
+  lo hace la Pantalla 1, a la que se vuelve con "Continuar").
+- **El texto de desgaste usa la redacción que ya dejó anotada `Api.gs`**
+  ("Has perdido X mm de los Y mm de vida útil.", ver el comentario de
+  `manejarRegistroMedicion_`): es la frase que el propio backend anticipó
+  para esta pantalla al añadir `medicion_inicial`/`desgaste` a la respuesta
+  del POST.
+- **El mensaje en ROJO informa, no ordena ni insiste** (instrucción
+  explícita del usuario para el Paso 7): "Estado: desgaste crítico." y
+  nada más — sin "contacta con UNTHA", sin urgencia, sin llamada a la
+  acción. Cualquier aviso proactivo (contactar, programar sustitución,
+  notificaciones push) es responsabilidad de UNTHA, no de esta pantalla;
+  verificado con una aserción automática que comprueba que el texto no
+  contiene verbos de mandato.
 
 ## 5. Gaps abiertos
 
-- **`untha-sat-pwa`**: relación con este proyecto sin aclarar (ver §1).
-- **Redespliegue pendiente de Api.gs** (ver aviso al principio del
-  documento): hasta que el usuario recopie `Api.gs` en el editor de Apps
-  Script y redespliegue la Web App, el backend real no devuelve
-  `rango_medicion`. La PWA ya tolera su ausencia (rango de reserva, §4), así
-  que no bloquea el uso — pero la validación de rango en producción seguirá
-  siendo la de reserva (0–50 mm) hasta entonces, no la real (1.0–6.5 mm).
-- Resuelto en el Paso 6 (ya no es un gap): `MIN_MEDICION`/`MAX_MEDICION`
-  ahora viajan en el GET como `rango_medicion` — ver §3 y §4.
+- **`untha-sat-pwa`**: relación con este proyecto sin aclarar (ver §1). Único
+  gap abierto en este momento.
+
+Resueltos (se dejan anotados por si hace falta el porqué más adelante):
+- `MIN_MEDICION`/`MAX_MEDICION` ahora viajan en el GET como `rango_medicion`
+  (Paso 6) y el backend real ya está redesplegado con ese cambio (confirmado
+  por el usuario antes del Paso 7) — ver §3 y §4.
   `MIN_INICIAL_NUEVO`/`MAX_INICIAL_NUEVO` (5.5–6.2 mm) siguen sin exponerse,
   pero esos solo se usan al dar de alta un ciclo nuevo (panel de UNTHA), no
   en la PWA de campo — no hace falta exponerlos aquí.
@@ -335,7 +366,7 @@ correctamente desde ahora para no tener que tocarlo entonces.
 ```
 .nojekyll                          — necesario para que GitHub Pages sirva ficheros/carpetas con "_" sin tratarlos como Jekyll
 config.js                          — CLUTCH_API_BASE_URL (única fuente de verdad de la URL del backend desplegado)
-css/styles.css                     — estilos, variables de color (marca + semáforo), componentes de las pantallas 1-3
+css/styles.css                     — estilos, variables de color (marca + semáforo), componentes de las pantallas 1-4
 icons/apple-touch-icon.png
 icons/icon-192.png
 icons/icon-512.png
@@ -347,22 +378,25 @@ js/i18n.js                         — diccionario es/pt, t(ruta), selector de i
 js/pantalla-aviso-seguridad.js     — Pantalla 2
 js/pantalla-maquina.js             — Pantalla 1
 js/pantalla-medicion.js            — Pantalla 3: formulario + validación + confirmación + guardado + reintento
+js/pantalla-resultado.js           — Pantalla 4: desgaste, color y mensaje de estado por posición medida
 manifest.json                      — Web App Manifest (nombre, iconos, colores, standalone)
 scripts/generar_iconos.py          — script Pillow (uso puntual, no se ejecuta en producción) para regenerar los iconos desde el logo
-sw.js                              — service worker: cachea shell estático (untha-clutch-shell-v6), deja pasar llamadas cross-origin (API) sin interceptar
+sw.js                              — service worker: cachea shell estático (untha-clutch-shell-v7), deja pasar llamadas cross-origin (API) sin interceptar
 ```
 
 `index.html` carga los scripts en este orden estricto (cada uno depende de
 los anteriores en tiempo de carga, no hay bundler):
 `config.js` → `js/i18n.js` → `js/api.js` → `js/pantalla-maquina.js` →
-`js/pantalla-aviso-seguridad.js` → `js/pantalla-medicion.js` → `js/app.js`.
-`js/pantalla-medicion.js` reutiliza funciones globales de
+`js/pantalla-aviso-seguridad.js` → `js/pantalla-medicion.js` →
+`js/pantalla-resultado.js` → `js/app.js`. Tanto `js/pantalla-medicion.js`
+como `js/pantalla-resultado.js` reutilizan funciones globales de
 `js/pantalla-maquina.js` (`claveTituloPosicion_`, `formatearValorMedicion_`,
-`formatearFecha_`), por eso va después de ese fichero. Al añadir
-`js/pantalla-resultado.js` (Paso 7), insertarlo en `index.html` antes de
-`js/app.js` y añadirlo también a `ARCHIVOS_APP_SHELL` en `sw.js` (si no,
-queda sin cachear para el modo instalado; recuerda subir el número de
-`CACHE_NAME` cuando cambie la lista, igual que se hizo v5→v6 en este paso).
+`formatearFecha_`, `CLASE_CSS_POR_SEMAFORO_`), por eso van después de ese
+fichero. Con las 4 pantallas del alcance actual ya construidas, solo quedan
+Paso 8 (identidad visual) y Paso 9 (end-to-end) — no se prevén más ficheros
+de pantalla nuevos; si se añadiera alguno, recuerda añadirlo también a
+`ARCHIVOS_APP_SHELL` en `sw.js` y subir el número de `CACHE_NAME` (v6→v7 en
+este paso).
 
 ## 7. Cómo probar sin tocar producción
 
@@ -378,15 +412,20 @@ y se le sirve un `CLUTCH_API_BASE_URL` apuntando al mock, solo dentro de esa
 `page` de Playwright. El fichero del repo nunca se toca durante la prueba —
 usado así en el Paso 6, mejor que el enfoque anterior de editar y revertir.
 
-Notas del entorno de pruebas de esta sesión (confirmadas también en el Paso
-6): usar `waitUntil: 'domcontentloaded'` o `'load'` en vez de `'networkidle'`,
-lanzar un `browser` nuevo por escenario en vez de reutilizar una página para
-varias navegaciones, y envolver la ejecución con `timeout` de shell —
-`networkidle` combinado con navegaciones múltiples en la misma página podía
-colgar el sandbox de este entorno de forma intermitente (no es un bug de la
-aplicación). Playwright está disponible como paquete global de Node
-(`NODE_PATH=/opt/node22/lib/node_modules node script.js`), no como
-dependencia del repo.
+Notas del entorno de pruebas de esta sesión (confirmadas también en los
+Pasos 6 y 7): usar `waitUntil: 'domcontentloaded'` o `'load'` en vez de
+`'networkidle'`, lanzar un `browser` nuevo por escenario en vez de reutilizar
+una página para varias navegaciones, y envolver la ejecución con `timeout`
+de shell — `networkidle` combinado con navegaciones múltiples en la misma
+página podía colgar el sandbox de este entorno de forma intermitente (no es
+un bug de la aplicación). Playwright está disponible como paquete global de
+Node (`NODE_PATH=/opt/node22/lib/node_modules node script.js`), no como
+dependencia del repo. El mock en Python a veces deja el puerto ocupado tras
+un `pkill` (el proceso ya no aparece en `ps` pero el socket tarda en
+liberarse); si el arranque falla con "Address already in use", más simple
+lanzar el mock en otro puerto que pelear con el anterior.
 
-Solo el usuario prueba contra el backend real desplegado (ya lo ha hecho con
-éxito desde su móvil, con la máquina SH12512, hasta el Paso 5).
+El usuario ya ha probado el backend real desplegado desde su móvil hasta el
+Paso 6 inclusive (medición registrada, validaciones, `10_ESTADO_ACTUAL`
+regenerado solo). La Pantalla 4 (Paso 7) todavía no se ha probado contra
+producción desde el teléfono — solo contra el mock local.

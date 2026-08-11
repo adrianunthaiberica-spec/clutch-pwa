@@ -2,14 +2,12 @@
 
 // UNTHA CLUTCH — punto de entrada de la PWA: registra el service worker, monta la
 // cabecera (logo + selector de idioma) y decide qué pintar en #contenido según el
-// token de la URL y la pantalla activa. La Pantalla 4 (Resultado) se conecta en el
-// próximo paso; de momento, tras guardar, se vuelve a la Pantalla 1 con los datos
-// recién actualizados y un aviso de que se ha guardado.
+// token de la URL y la pantalla activa.
 
 let tokenActual = null;
 let ultimoEstadoMaquina = null; // cache: cambiar de idioma no debe disparar un nuevo GET
-let pantallaActual = 'maquina'; // 'maquina' | 'aviso-seguridad' | 'medicion'
-let mensajeGuardadoPendiente_ = false; // se muestra una vez, la próxima vez que se pinte la Pantalla 1
+let pantallaActual = 'maquina'; // 'maquina' | 'aviso-seguridad' | 'medicion' | 'resultado'
+let ultimosResultadosGuardados_ = null; // { IZQUIERDA?: {...}, DERECHA?: {...} } para la Pantalla 4
 
 function registrarServiceWorker() {
   if ('serviceWorker' in navigator) {
@@ -63,13 +61,25 @@ function alConfirmarAvisoSeguridad_() {
 
 /**
  * Se llama cuando la Pantalla 3 ha guardado con éxito TODAS las posiciones enviadas.
- * Se vuelve a la Pantalla 1 pero forzando un GET nuevo (no se reutiliza la caché en
- * memoria): el semáforo y la última medición ya han cambiado en el servidor.
+ * Antes de pintar la Pantalla 4 se pide un GET fresco (no se reutiliza la caché en
+ * memoria): el semáforo ya ha cambiado en el servidor y la Pantalla 4 necesita el color
+ * real, nunca recalculado en el cliente (§2.4). Si ese GET fallara, la medición ya está
+ * guardada de todos modos (no se bloquea ni se reintenta aquí): se pinta igual, sin
+ * color exacto (ver renderPantallaResultado, `guardadoSinEstado`).
  */
-function alGuardadoCompleto_() {
-  pantallaActual = 'maquina';
-  mensajeGuardadoPendiente_ = true;
-  cargarMaquina();
+async function alGuardadoCompleto_(resultadosGuardados) {
+  ultimosResultadosGuardados_ = resultadosGuardados;
+  pantallaActual = 'resultado';
+
+  const contenido = document.getElementById('contenido');
+  if (contenido) contenido.innerHTML = '<p class="cargando">' + t('comun.cargando') + '</p>';
+
+  const resultado = await consultarMaquina(tokenActual);
+  if (resultado.ok) {
+    ultimoEstadoMaquina = resultado.datos; // así la Pantalla 1, al volver, ya no necesita otro GET
+  }
+
+  pintarPantalla();
 }
 
 async function cargarMaquina() {
@@ -88,17 +98,6 @@ async function cargarMaquina() {
 
   ultimoEstadoMaquina = resultado.datos;
   renderPantallaMaquina(contenido, ultimoEstadoMaquina, irAPantallaAvisoSeguridad_);
-  mostrarAvisoGuardadoSiPendiente_(contenido);
-}
-
-function mostrarAvisoGuardadoSiPendiente_(contenido) {
-  if (!mensajeGuardadoPendiente_) return;
-  mensajeGuardadoPendiente_ = false;
-
-  const aviso = document.createElement('p');
-  aviso.className = 'aviso-guardado';
-  aviso.textContent = t('maquina.guardadoOk');
-  contenido.insertBefore(aviso, contenido.firstChild);
 }
 
 function pintarPantalla() {
@@ -117,6 +116,11 @@ function pintarPantalla() {
 
   if (pantallaActual === 'medicion') {
     renderPantallaMedicion(contenido, tokenActual, ultimoEstadoMaquina, alGuardadoCompleto_, irAPantallaMaquina_);
+    return;
+  }
+
+  if (pantallaActual === 'resultado') {
+    renderPantallaResultado(contenido, ultimoEstadoMaquina, ultimosResultadosGuardados_, irAPantallaMaquina_);
     return;
   }
 

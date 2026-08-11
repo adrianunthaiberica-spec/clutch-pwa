@@ -388,7 +388,18 @@ function renderPantallaMedicion(contenedor, token, datosMaquina, alGuardadoCompl
         .then((resultados) => {
           const fallidas = Object.keys(resultados).filter((posicion) => !resultados[posicion].ok);
           if (fallidas.length === 0) {
-            alGuardadoCompleto();
+            // Pantalla 4 solo necesita el valor guardado y lo que devuelve el POST
+            // (medicion_inicial, desgaste); el color lo pedirá app.js con un GET fresco,
+            // nunca se recalcula aquí (§2.4).
+            const resultadosGuardados = {};
+            Object.keys(resultados).forEach((posicion) => {
+              resultadosGuardados[posicion] = {
+                valor: resultado.entradas[posicion].valor,
+                medicion_inicial: resultados[posicion].datos.medicion_inicial,
+                desgaste: resultados[posicion].datos.desgaste,
+              };
+            });
+            alGuardadoCompleto(resultadosGuardados);
             return;
           }
 

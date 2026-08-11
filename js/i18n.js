@@ -28,7 +28,6 @@ const TRADUCCIONES = {
       posicionDerecha: 'Derecha',
       sinRegistrar: 'Embragues sin registrar — contacta con UNTHA',
       botonNuevaMedicion: 'Nueva medición',
-      guardadoOk: 'Medición guardada correctamente.',
     },
     avisoSeguridad: {
       titulo: 'Aviso de seguridad',
@@ -69,6 +68,17 @@ const TRADUCCIONES = {
       errorGuardarTitulo: 'No se ha podido guardar alguna posición',
       reintentar: 'Reintentar',
     },
+    resultado: {
+      titulo: 'Resultado',
+      perdidoPrefijo: 'Has perdido',
+      perdidoDe: 'de los',
+      perdidoSufijo: 'de vida útil.',
+      estadoVerde: 'Estado: correcto.',
+      estadoAmbar: 'Estado: desgaste a vigilar.',
+      estadoRojo: 'Estado: desgaste crítico.',
+      guardadoSinEstado: 'Medición guardada.',
+      continuar: 'Continuar',
+    },
     // Traducciones de los codigos de error que devuelve el backend (Api.gs). El
     // servidor siempre manda su `mensaje` en castellano (no esta preparado para
     // idiomas); aqui se traducen los codigos que un operario puede llegar a ver de
@@ -102,7 +112,6 @@ const TRADUCCIONES = {
       posicionDerecha: 'Direita',
       sinRegistrar: 'Embraiagens não registadas — contacta a UNTHA',
       botonNuevaMedicion: 'Nova medição',
-      guardadoOk: 'Medição guardada com sucesso.',
     },
     avisoSeguridad: {
       titulo: 'Aviso de segurança',
@@ -142,6 +151,17 @@ const TRADUCCIONES = {
       guardando: 'A guardar…',
       errorGuardarTitulo: 'Não foi possível guardar alguma posição',
       reintentar: 'Tentar novamente',
+    },
+    resultado: {
+      titulo: 'Resultado',
+      perdidoPrefijo: 'Perdeste',
+      perdidoDe: 'dos',
+      perdidoSufijo: 'de vida útil.',
+      estadoVerde: 'Estado: correto.',
+      estadoAmbar: 'Estado: desgaste a vigiar.',
+      estadoRojo: 'Estado: desgaste crítico.',
+      guardadoSinEstado: 'Medição guardada.',
+      continuar: 'Continuar',
     },
     errores: {
       ACCESO_DENEGADO: 'Não foi possível aceder a esta máquina. Verifica o código QR ou contacta a UNTHA.',
