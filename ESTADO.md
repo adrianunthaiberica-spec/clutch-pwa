@@ -2,7 +2,7 @@
 
 Documento de traspaso. Escrito para que alguien sin contexto previo pueda
 continuar el trabajo leyendo solo esto (más el código). Última actualización:
-2026-08-11, tras completar el Paso 7 (Pantalla 4 · Resultado).
+2026-08-11, tras completar el Paso 8 (identidad visual — tipografía Barlow).
 
 El redespliegue de `Api.gs` pendiente desde el Paso 6 ya se hizo: el usuario
 confirmó desde el móvil que el backend real registra mediciones, valida y
@@ -84,9 +84,22 @@ contra el backend real desde un móvil).
   datos frescos en caché, sin otro GET). Sustituye el aviso-banner temporal
   del Paso 6. Verificado con Playwright/mock local: 25 aserciones en 4
   escenarios (los 3 del Paso 6 más uno nuevo para el caso ROJO).
-- [ ] **Paso 8** — Identidad visual definitiva: cargar Barlow / Barlow
-  Condensed (ahora mismo `--fuente-base` en `css/styles.css` es sans-serif del
-  sistema, placeholder deliberado para no depender de red hasta este paso).
+- [x] **Paso 8** — Identidad visual: tipografía Barlow. Autoalojada en
+  `fonts/` (pesos 400/600/700, solo subconjunto "latin" — cubre es/pt), no
+  un CDN externo: mismo criterio de "sin servicios externos" ya aplicado al
+  generador de QR, y necesario para que el offline futuro no dependa de un
+  tercero disponible. `font-display: swap` en los tres `@font-face`
+  (`css/styles.css`) para que el texto se pinte YA con la pila de respaldo
+  del sistema (`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  sans-serif`) y se sustituya por Barlow solo si (y cuando) termina de
+  cargar — nunca bloquea el renderizado, verificado forzando que la petición
+  a la fuente cuelgue para siempre y comprobando que la pantalla se pinta
+  igual en ~100 ms. `fonts/OFL.txt` incluida (licencia SIL Open Font
+  License, obligatoria al redistribuir la fuente). No se ha añadido Barlow
+  Condensed: no había un uso concreto que lo pidiera, se puede añadir más
+  adelante igual (mismo mecanismo) si hace falta para algún título. Barlow
+  Condensed queda mencionada en la documentación previa de esta sección
+  únicamente como posibilidad, no como pendiente.
 - [ ] **Paso 9** — Pruebas end-to-end.
 
 **Pendiente de aclarar con el usuario, no bloqueante:** qué relación tiene el
@@ -108,6 +121,10 @@ todavía. No tocar ese repo hasta que se aclare.
 - Verificar cada paso con ejecución real (Playwright/Chromium contra mocks
   locales) antes de avanzar al siguiente, no solo revisión visual/de código.
 - Confirmar arquitectura con el usuario antes de piezas grandes.
+- **Sin servicios externos**: nada de CDN, API de terceros ni assets
+  servidos fuera del propio dominio (aplicado ya al generador de QR y a la
+  tipografía Barlow, §4). Necesario tanto por criterio del proyecto como
+  para que el offline futuro no dependa de que un tercero esté disponible.
 
 ## 3. Contrato de la API — verificado contra `apps-script/Api.gs` (App-clutch), no de memoria
 
@@ -288,9 +305,35 @@ correctamente desde ahora para no tener que tocarlo entonces.
   esta versión; el fichero es el punto de enganche para cuando se añada.
 - **Iconos con fondo gris claro `#F2F2F2`** (no teal): el teal-sobre-teal
   tenía poco contraste; confirmado visualmente tras el cambio.
-- **Tipografía Barlow diferida al Paso 8**: de momento sans-serif del
-  sistema, para no depender de red (Google Fonts u otro CDN) hasta que se
-  aborde la identidad visual definitiva de forma explícita.
+- **Barlow autoalojada (`fonts/`), no CDN de Google Fonts** (decisión
+  explícita del usuario, Paso 8): mismo criterio "sin servicios externos" ya
+  aplicado al generador de QR (§2), y necesario para que el offline futuro no
+  dependa de que fonts.gstatic.com esté disponible. Coste asumido: ~84 KB de
+  binarios (`.woff2`) versionados en el repo, más `fonts/OFL.txt` (SIL Open
+  Font License — obligatoria al redistribuir la fuente). Los `.woff2` se
+  obtuvieron pidiendo `https://fonts.googleapis.com/css2?family=Barlow:...`
+  con un User-Agent moderno (para que el CSS que Google devuelve apunte a
+  `.woff2`, no a `.ttf`) y descargando las URLs `fonts.gstatic.com` que trae
+  ese CSS — es un paso único hecho a mano para obtener los ficheros; en
+  tiempo de ejecución la PWA no contacta con Google en absoluto.
+- **Solo el subconjunto "latin" de Barlow** (no "latin-ext" ni
+  "vietnamese"): el rango `U+0000-00FF` (Latin-1 Supplement) ya cubre todos
+  los caracteres de español y portugués (ñ, ã, ç, á, é, í, ó, ú, ü, etc.);
+  pedir subconjuntos que nunca se van a pintar solo engordaría el repo sin
+  motivo.
+- **`font-display: swap`** en los tres `@font-face` (`css/styles.css`,
+  pesos 400/600/700): el texto se pinta de inmediato con la pila de
+  respaldo del sistema y se sustituye por Barlow solo si (y cuando) termina
+  de cargar — nunca hay bloqueo de renderizado ni pantalla en blanco
+  esperando la fuente, ni siquiera si la petición a `fonts/*.woff2` no
+  responde nunca (verificado forzando exactamente ese caso con Playwright:
+  la pantalla se pinta en ~100 ms igual). Ojo con una trampa relacionada:
+  el `<link rel="preload">` del peso regular en `index.html` SÍ cuenta como
+  recurso de la página para el evento `load` del navegador — si esa petición
+  cuelga, `load` no llega nunca, pero eso no afecta ni al pintado ni a la
+  interactividad (ver `DOMContentLoaded` vs `load` en las notas de prueba,
+  §7); no usar `waitUntil: 'load'` de Playwright para probar este
+  comportamiento por esa razón.
 - **`rango_medicion` viene del servidor, nunca hardcodeado en el cliente**
   (decisión explícita del usuario para el Paso 6): MIN_MEDICION/MAX_MEDICION
   viven en 00_PARAMETROS precisamente para poder ajustarse sin tocar código;
@@ -366,12 +409,16 @@ Resueltos (se dejan anotados por si hace falta el porqué más adelante):
 ```
 .nojekyll                          — necesario para que GitHub Pages sirva ficheros/carpetas con "_" sin tratarlos como Jekyll
 config.js                          — CLUTCH_API_BASE_URL (única fuente de verdad de la URL del backend desplegado)
-css/styles.css                     — estilos, variables de color (marca + semáforo), componentes de las pantallas 1-4
+css/styles.css                     — estilos, @font-face de Barlow, variables de color (marca + semáforo), componentes de las pantallas 1-4
+fonts/Barlow-Regular.woff2         — peso 400, autoalojada, solo subconjunto "latin"
+fonts/Barlow-SemiBold.woff2        — peso 600, ídem
+fonts/Barlow-Bold.woff2            — peso 700, ídem
+fonts/OFL.txt                      — SIL Open Font License de Barlow (obligatoria al redistribuirla)
 icons/apple-touch-icon.png
 icons/icon-192.png
 icons/icon-512.png
 img/logo-untha.png                 — logo en la cabecera
-index.html                         — shell HTML, carga los scripts en orden de dependencia
+index.html                         — shell HTML, preload del peso regular de Barlow, carga los scripts en orden de dependencia
 js/api.js                          — capa de API: consultarMaquina, registrarMedicion, generarIdMedicion, timeout, traducción de errores
 js/app.js                          — orquestación: registra el SW, monta cabecera, máquina de estados de pantallas, enrutado por token de la URL
 js/i18n.js                         — diccionario es/pt, t(ruta), selector de idioma, override en localStorage
@@ -381,7 +428,7 @@ js/pantalla-medicion.js            — Pantalla 3: formulario + validación + co
 js/pantalla-resultado.js           — Pantalla 4: desgaste, color y mensaje de estado por posición medida
 manifest.json                      — Web App Manifest (nombre, iconos, colores, standalone)
 scripts/generar_iconos.py          — script Pillow (uso puntual, no se ejecuta en producción) para regenerar los iconos desde el logo
-sw.js                              — service worker: cachea shell estático (untha-clutch-shell-v7), deja pasar llamadas cross-origin (API) sin interceptar
+sw.js                              — service worker: cachea shell estático + fuentes (untha-clutch-shell-v8), deja pasar llamadas cross-origin (API) sin interceptar
 ```
 
 `index.html` carga los scripts en este orden estricto (cada uno depende de
@@ -392,11 +439,11 @@ los anteriores en tiempo de carga, no hay bundler):
 como `js/pantalla-resultado.js` reutilizan funciones globales de
 `js/pantalla-maquina.js` (`claveTituloPosicion_`, `formatearValorMedicion_`,
 `formatearFecha_`, `CLASE_CSS_POR_SEMAFORO_`), por eso van después de ese
-fichero. Con las 4 pantallas del alcance actual ya construidas, solo quedan
-Paso 8 (identidad visual) y Paso 9 (end-to-end) — no se prevén más ficheros
-de pantalla nuevos; si se añadiera alguno, recuerda añadirlo también a
-`ARCHIVOS_APP_SHELL` en `sw.js` y subir el número de `CACHE_NAME` (v6→v7 en
-este paso).
+fichero. Con las 4 pantallas del alcance actual ya construidas, solo queda
+Paso 9 (end-to-end) — no se prevén más ficheros de pantalla nuevos; si se
+añadiera alguno (o cualquier otro fichero del shell), recuerda añadirlo
+también a `ARCHIVOS_APP_SHELL` en `sw.js` y subir el número de `CACHE_NAME`
+(v7→v8 en este paso, al añadir las fuentes).
 
 ## 7. Cómo probar sin tocar producción
 
@@ -425,7 +472,21 @@ un `pkill` (el proceso ya no aparece en `ps` pero el socket tarda en
 liberarse); si el arranque falla con "Address already in use", más simple
 lanzar el mock en otro puerto que pelear con el anterior.
 
+**Probar que una fuente no bloquea el renderizado** (Paso 8): usar
+`page.route('**/fonts/*.woff2', () => new Promise(() => {}))` para que la
+petición a la fuente cuelgue para siempre, y comprobar que el contenido
+real sigue apareciendo enseguida. Importante: para esa prueba usar
+`waitUntil: 'domcontentloaded'` en `page.goto`, NUNCA `'load'` — el
+`<link rel="preload">` de la fuente cuenta como recurso de la página para
+el evento `load` del navegador, así que si esa petición nunca responde,
+`load` tampoco llega nunca (aunque la página esté perfectamente pintada e
+interactiva). Es un comportamiento real del navegador, no un fallo de la
+prueba ni de la app. Para confirmar que NO se llama a ningún CDN externo,
+escuchar `page.on('request', ...)` y comprobar que todas las peticiones son
+al propio origen del mock.
+
 El usuario ya ha probado el backend real desplegado desde su móvil hasta el
 Paso 6 inclusive (medición registrada, validaciones, `10_ESTADO_ACTUAL`
-regenerado solo). La Pantalla 4 (Paso 7) todavía no se ha probado contra
-producción desde el teléfono — solo contra el mock local.
+regenerado solo). La Pantalla 4 (Paso 7) y la tipografía Barlow (Paso 8)
+todavía no se han probado contra producción desde el teléfono — solo contra
+el mock local.

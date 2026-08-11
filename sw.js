@@ -5,7 +5,7 @@
 // máquina (fetch a la API) van SIEMPRE a red, nunca a caché — no hay offline de datos
 // todavía. Este fichero es el punto de enganche para cuando se añada.
 
-const CACHE_NAME = 'untha-clutch-shell-v7';
+const CACHE_NAME = 'untha-clutch-shell-v8';
 const ARCHIVOS_APP_SHELL = [
   './',
   './index.html',
@@ -20,6 +20,9 @@ const ARCHIVOS_APP_SHELL = [
   './css/styles.css',
   './manifest.json',
   './img/logo-untha.png',
+  './fonts/Barlow-Regular.woff2',
+  './fonts/Barlow-SemiBold.woff2',
+  './fonts/Barlow-Bold.woff2',
 ];
 
 self.addEventListener('install', (event) => {
