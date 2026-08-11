@@ -21,6 +21,22 @@ const TRADUCCIONES = {
     inicio: {
       escanear: 'Escanea el código QR de la máquina para empezar.',
     },
+    // Traducciones de los codigos de error que devuelve el backend (Api.gs). El
+    // servidor siempre manda su `mensaje` en castellano (no esta preparado para
+    // idiomas); aqui se traducen los codigos que un operario puede llegar a ver de
+    // verdad. Los que faltan (p. ej. DATOS_INVALIDOS, con numeros concretos de rango
+    // incrustados en el texto) se quedan con el mensaje del servidor tal cual: mejor
+    // eso que nada, y en la practica casi no deberian verse porque la propia pantalla
+    // de medicion ya valida antes de enviar.
+    errores: {
+      ACCESO_DENEGADO: 'No se ha podido acceder a esta máquina. Comprueba el código QR o contacta con UNTHA.',
+      POSICION_SIN_REGISTRAR: 'Este embrague no está registrado todavía. Contacta con UNTHA.',
+      SUSTITUCION_NO_DECLARADA:
+        'Esta medición es mayor que la anterior. Si se ha sustituido el embrague, contacta con UNTHA para registrarlo.',
+      CICLO_NO_ACTIVO: 'Este embrague no está registrado todavía. Contacta con UNTHA.',
+      ERROR_INTERNO: 'Ha ocurrido un error en el servidor. Inténtalo de nuevo en unos minutos.',
+      ERROR_RED: 'No se ha podido conectar. Comprueba tu conexión e inténtalo de nuevo.',
+    },
   },
   pt: {
     comun: {
@@ -30,6 +46,15 @@ const TRADUCCIONES = {
     },
     inicio: {
       escanear: 'Digitaliza o código QR da máquina para começar.',
+    },
+    errores: {
+      ACCESO_DENEGADO: 'Não foi possível aceder a esta máquina. Verifica o código QR ou contacta a UNTHA.',
+      POSICION_SIN_REGISTRAR: 'Esta embraiagem ainda não está registada. Contacta a UNTHA.',
+      SUSTITUCION_NO_DECLARADA:
+        'Esta medição é maior do que a anterior. Se a embraiagem foi substituída, contacta a UNTHA para a registar.',
+      CICLO_NO_ACTIVO: 'Esta embraiagem ainda não está registada. Contacta a UNTHA.',
+      ERROR_INTERNO: 'Ocorreu um erro no servidor. Tenta novamente dentro de uns minutos.',
+      ERROR_RED: 'Não foi possível ligar. Verifica a tua ligação e tenta novamente.',
     },
   },
 };
