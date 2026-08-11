@@ -5,7 +5,7 @@
 // máquina (fetch a la API) van SIEMPRE a red, nunca a caché — no hay offline de datos
 // todavía. Este fichero es el punto de enganche para cuando se añada.
 
-const CACHE_NAME = 'untha-clutch-shell-v4';
+const CACHE_NAME = 'untha-clutch-shell-v5';
 const ARCHIVOS_APP_SHELL = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const ARCHIVOS_APP_SHELL = [
   './js/i18n.js',
   './js/api.js',
   './js/pantalla-maquina.js',
+  './js/pantalla-aviso-seguridad.js',
   './js/app.js',
   './css/styles.css',
   './manifest.json',

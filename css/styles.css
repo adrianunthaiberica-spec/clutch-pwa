@@ -183,6 +183,63 @@ button {
   max-width: 320px;
 }
 
+/* Pantalla 2 · Aviso de seguridad */
+
+.pantalla-aviso {
+  width: 100%;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pantalla-aviso__titulo {
+  margin: 0;
+  font-size: 1.5rem;
+  border-left: 6px solid var(--color-amarillo);
+  padding-left: 12px;
+}
+
+.pantalla-aviso__mensaje {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.5;
+}
+
+/* Área táctil grande a propósito (toda la fila, no solo la casilla): pensado para
+   confirmarse con guantes sin apuntar con precisión. */
+.pantalla-aviso__confirmacion {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 2px solid var(--color-gris);
+  border-radius: 10px;
+  font-size: 1.05rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pantalla-aviso__confirmacion input[type='checkbox'] {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  accent-color: var(--color-teal);
+  cursor: pointer;
+}
+
+.boton-secundario {
+  padding: 14px;
+  min-height: 52px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border: 2px solid var(--color-teal);
+  border-radius: 10px;
+  background: var(--color-blanco);
+  color: var(--color-teal);
+  cursor: pointer;
+}
+
 .selector-idioma {
   display: inline-flex;
   gap: 2px;

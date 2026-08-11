@@ -17,6 +17,7 @@ const TRADUCCIONES = {
       cargando: 'Cargando…',
       error: 'Ha ocurrido un error. Inténtalo de nuevo.',
       reintentar: 'Reintentar',
+      proximamente: 'Próximamente…',
     },
     inicio: {
       escanear: 'Escanea el código QR de la máquina para empezar.',
@@ -27,6 +28,13 @@ const TRADUCCIONES = {
       posicionDerecha: 'Derecha',
       sinRegistrar: 'Embragues sin registrar — contacta con UNTHA',
       botonNuevaMedicion: 'Nueva medición',
+    },
+    avisoSeguridad: {
+      titulo: 'Aviso de seguridad',
+      mensaje: 'Antes de medir, comprueba que la máquina está parada y enclavada.',
+      confirmacion: 'Confirmo que la máquina está parada y enclavada.',
+      continuar: 'Continuar',
+      cancelar: 'Cancelar',
     },
     // Traducciones de los codigos de error que devuelve el backend (Api.gs). El
     // servidor siempre manda su `mensaje` en castellano (no esta preparado para
@@ -50,6 +58,7 @@ const TRADUCCIONES = {
       cargando: 'A carregar…',
       error: 'Ocorreu um erro. Tenta novamente.',
       reintentar: 'Tentar novamente',
+      proximamente: 'Brevemente…',
     },
     inicio: {
       escanear: 'Digitaliza o código QR da máquina para começar.',
@@ -60,6 +69,13 @@ const TRADUCCIONES = {
       posicionDerecha: 'Direita',
       sinRegistrar: 'Embraiagens não registadas — contacta a UNTHA',
       botonNuevaMedicion: 'Nova medição',
+    },
+    avisoSeguridad: {
+      titulo: 'Aviso de segurança',
+      mensaje: 'Antes de medir, confirma que a máquina está parada e bloqueada.',
+      confirmacion: 'Confirmo que a máquina está parada e bloqueada.',
+      continuar: 'Continuar',
+      cancelar: 'Cancelar',
     },
     errores: {
       ACCESO_DENEGADO: 'Não foi possível aceder a esta máquina. Verifica o código QR ou contacta a UNTHA.',

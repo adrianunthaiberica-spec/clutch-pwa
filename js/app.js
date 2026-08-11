@@ -1,12 +1,14 @@
 'use strict';
 
 // UNTHA CLUTCH — punto de entrada de la PWA: registra el service worker, monta la
-// cabecera (logo + selector de idioma) y decide qué pintar en #contenido según haya o
-// no token en la URL. Las pantallas siguientes (Aviso de seguridad, Medición,
-// Resultado) se conectan en los próximos pasos.
+// cabecera (logo + selector de idioma) y decide qué pintar en #contenido según el
+// token de la URL y la pantalla activa. La Pantalla 3 (Medición) y la 4 (Resultado)
+// se conectan en los próximos pasos; de momento el aviso de seguridad confirmado lleva
+// a un marcador de posición.
 
 let tokenActual = null;
 let ultimoEstadoMaquina = null; // cache: cambiar de idioma no debe disparar un nuevo GET
+let pantallaActual = 'maquina'; // 'maquina' | 'aviso-seguridad' | 'medicion-pendiente'
 
 function registrarServiceWorker() {
   if ('serviceWorker' in navigator) {
@@ -43,8 +45,20 @@ function mostrarError_(contenedor, mensaje) {
   contenedor.appendChild(boton);
 }
 
-function alPulsarNuevaMedicion_() {
-  // TODO: navegar a la Pantalla 2 (aviso de seguridad) cuando exista.
+function irAPantallaMaquina_() {
+  pantallaActual = 'maquina';
+  pintarPantalla();
+}
+
+function irAPantallaAvisoSeguridad_() {
+  pantallaActual = 'aviso-seguridad';
+  pintarPantalla();
+}
+
+function alConfirmarAvisoSeguridad_() {
+  // TODO: ir a la Pantalla 3 (Medición) cuando exista.
+  pantallaActual = 'medicion-pendiente';
+  pintarPantalla();
 }
 
 async function cargarMaquina() {
@@ -62,7 +76,7 @@ async function cargarMaquina() {
   }
 
   ultimoEstadoMaquina = resultado.datos;
-  renderPantallaMaquina(contenido, ultimoEstadoMaquina, alPulsarNuevaMedicion_);
+  renderPantallaMaquina(contenido, ultimoEstadoMaquina, irAPantallaAvisoSeguridad_);
 }
 
 function pintarPantalla() {
@@ -74,8 +88,18 @@ function pintarPantalla() {
     return;
   }
 
+  if (pantallaActual === 'aviso-seguridad') {
+    renderPantallaAvisoSeguridad(contenido, alConfirmarAvisoSeguridad_, irAPantallaMaquina_);
+    return;
+  }
+
+  if (pantallaActual === 'medicion-pendiente') {
+    contenido.innerHTML = '<p class="mensaje">' + t('comun.proximamente') + '</p>';
+    return;
+  }
+
   if (ultimoEstadoMaquina) {
-    renderPantallaMaquina(contenido, ultimoEstadoMaquina, alPulsarNuevaMedicion_);
+    renderPantallaMaquina(contenido, ultimoEstadoMaquina, irAPantallaAvisoSeguridad_);
     return;
   }
 
