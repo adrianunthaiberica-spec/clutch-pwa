@@ -2,7 +2,8 @@
 
 Documento de traspaso. Escrito para que alguien sin contexto previo pueda
 continuar el trabajo leyendo solo esto (más el código). Última actualización:
-2026-08-11, tras completar el Paso 8 (identidad visual — tipografía Barlow).
+2026-08-11, tras completar el Paso 9 (pruebas end-to-end) — los 9 pasos del
+orden de construcción acordado están completos.
 
 El redespliegue de `Api.gs` pendiente desde el Paso 6 ya se hizo: el usuario
 confirmó desde el móvil que el backend real registra mediciones, valida y
@@ -100,7 +101,34 @@ contra el backend real desde un móvil).
   adelante igual (mismo mecanismo) si hace falta para algún título. Barlow
   Condensed queda mencionada en la documentación previa de esta sección
   únicamente como posibilidad, no como pendiente.
-- [ ] **Paso 9** — Pruebas end-to-end.
+- [x] **Paso 9** — Pruebas end-to-end. Dos partes:
+  1. **Suite automática contra el mock local** (fuera de este repo, ver §7):
+     23 aserciones cubriendo las 4 pantallas, los 3 rechazos del teclado (dos
+     decimales, fuera de rango, sustitución no declarada), un GET sin token
+     y con token inválido, un fallo de red real con recuperación, cambio de
+     idioma a mitad de flujo, idempotencia real (fallo de red tras confirmar
+     + reintento con el mismo id, comprobando que solo escribe una vez), la
+     posición `SIN_REGISTRAR` a través de las 3 pantallas que la tocan, y el
+     registro/cacheado del service worker. Al construir esta suite salió un
+     hallazgo real y no trivial sobre cómo probar localmente (ver §7,
+     "mismo origen vs. service worker") — queda documentado ahí porque
+     afecta a cómo hay que montar cualquier prueba futura de reintento/red,
+     no solo a esta.
+  2. **`PRUEBAS_MANUALES.md`** (raíz de este repo): checklist para que el
+     usuario la ejecute en su móvil contra producción — mismo alcance que la
+     suite automática (los 3 rechazos, idempotencia real con modo avión,
+     idioma, instalación, shell sin conexión) más qué revisar después en
+     `04_MEDICIONES`, `10_ESTADO_ACTUAL`, `90_LOG` y `03_CICLOS`, y un aviso
+     de que las mediciones de prueba guardadas de verdad se pueden anular
+     después desde el panel de UNTHA para no dejar el Sheet con datos falsos.
+     Pendiente de que el usuario la ejecute — no se ha corrido contra
+     producción todavía.
+
+Con los 9 pasos completos, el alcance acordado para esta beta está construido
+y probado (queda pendiente solo la ejecución manual de `PRUEBAS_MANUALES.md`
+por el usuario). Lo que sigue a partir de aquí es fuera del alcance actual:
+offline de datos, notificaciones push (v1.10), auto-detección de idioma por
+país cuando el backend lo exponga, etc. — nada de eso está empezado.
 
 **Pendiente de aclarar con el usuario, no bloqueante:** qué relación tiene el
 repo `untha-sat-pwa` con este proyecto (¿plantilla de referencia de otro
@@ -439,11 +467,16 @@ los anteriores en tiempo de carga, no hay bundler):
 como `js/pantalla-resultado.js` reutilizan funciones globales de
 `js/pantalla-maquina.js` (`claveTituloPosicion_`, `formatearValorMedicion_`,
 `formatearFecha_`, `CLASE_CSS_POR_SEMAFORO_`), por eso van después de ese
-fichero. Con las 4 pantallas del alcance actual ya construidas, solo queda
-Paso 9 (end-to-end) — no se prevén más ficheros de pantalla nuevos; si se
-añadiera alguno (o cualquier otro fichero del shell), recuerda añadirlo
-también a `ARCHIVOS_APP_SHELL` en `sw.js` y subir el número de `CACHE_NAME`
-(v7→v8 en este paso, al añadir las fuentes).
+fichero. Con las 4 pantallas construidas y el Paso 9 completo, no se prevén
+más ficheros de pantalla nuevos dentro del alcance actual; si se añadiera
+alguno (o cualquier otro fichero del shell), recuerda añadirlo también a
+`ARCHIVOS_APP_SHELL` en `sw.js` y subir el número de `CACHE_NAME` (v7→v8 al
+añadir las fuentes en el Paso 8).
+
+`PRUEBAS_MANUALES.md` (raíz del repo, junto a este fichero) no es parte de
+la PWA — es la checklist de pruebas manuales del Paso 9 para ejecutar en el
+móvil contra producción (ver §1 y §7). No se sirve ni se referencia desde
+`index.html`.
 
 ## 7. Cómo probar sin tocar producción
 
@@ -485,8 +518,34 @@ prueba ni de la app. Para confirmar que NO se llama a ningún CDN externo,
 escuchar `page.on('request', ...)` y comprobar que todas las peticiones son
 al propio origen del mock.
 
-El usuario ya ha probado el backend real desplegado desde su móvil hasta el
+**Mismo origen vs. service worker — hallazgo del Paso 9, importante para
+cualquier prueba futura de red/reintentos**: si el mock sirve los ficheros
+estáticos Y la API en el MISMO puerto/origen, `sw.js` los trata como
+"mismo origen" y los intercepta él mismo con su `fetch` cache-first —
+DENTRO del contexto de ejecución del service worker, no de la página. Un
+`page.route()` de Playwright no ve esas peticiones: se pierden antes de
+llegar a la página. Así fallaba en silencio (sin que la ruta interceptada
+saltara nunca) la primera versión de la prueba de idempotencia de este
+paso. La condición real en `sw.js` es `url.origin !== self.location.origin`
+(dejar pasar solo lo cross-origin); en producción esto nunca pasa porque la
+API vive en `script.google.com` y la PWA en GitHub Pages — orígenes ya
+distintos de por sí. Para que el mock lo reproduzca fielmente, hay que
+servir la API en un puerto DISTINTO al de los ficheros estáticos (dos
+procesos del mismo `mock_server.py`, cada uno con su propio puerto) y
+apuntar `CLUTCH_API_BASE_URL` al de la API. Cualquier prueba que intercepte
+o corte peticiones de red (fallos, reintentos, idempotencia) necesita este
+montaje de dos orígenes; las que solo leen (Pantallas 1/2 sin guardar)
+funcionan igual con uno solo.
+
+Otra nota del Paso 9: evitar un segundo `page.goto()` sobre la MISMA `page`
+para "reiniciar" un escenario a mitad de camino — es más fiable inspeccionar
+la Pantalla 1 nada más cargar y luego seguir interactuando sobre la misma
+carga (clicks) que navegar dos veces seguidas en una sola `page` (inestable
+en este sandbox, coherente con la nota ya existente sobre `networkidle`).
+
+El usuario ha probado el backend real desplegado desde su móvil hasta el
 Paso 6 inclusive (medición registrada, validaciones, `10_ESTADO_ACTUAL`
-regenerado solo). La Pantalla 4 (Paso 7) y la tipografía Barlow (Paso 8)
-todavía no se han probado contra producción desde el teléfono — solo contra
-el mock local.
+regenerado solo) y la tipografía Barlow del Paso 8 ("se ve correctamente").
+La Pantalla 4 (Paso 7) todavía no se ha confirmado específicamente contra
+producción desde el teléfono — queda cubierta por `PRUEBAS_MANUALES.md`
+(§1, Paso 9), pendiente de que el usuario la ejecute.
